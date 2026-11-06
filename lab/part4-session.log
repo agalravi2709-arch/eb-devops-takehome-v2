@@ -2018,3 +2018,57 @@ spec:
   type: ClusterIP
 status:
   loadBalancer: {}
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl -n debug-lab port-forward svc/gateway 18080:80
+Forwarding from 127.0.0.1:18080 -> 8080
+Forwarding from [::1]:18080 -> 8080
+Handling connection for 18080
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> @'
+# DevOps Lab Findings
+
+## Fixes Implemented
+
+1. Migration Job: Changed restartPolicy from Always to Never.
+2. Container security: Added numeric runAsUser 65532 for non-root execution.
+3. Worker: Added an emptyDir volume for the writable cache directory.
+4. Application ports: Set PORT=8080 to match Kubernetes services and probes.
+5. Gateway: Corrected BACKEND_URL to http://backend.debug-lab.svc:8080.
+6. Metrics: Reduced CPU limit to comply with namespace LimitRange.
+7. Reporter RBAC: Corrected RoleBinding to reference the reporter ServiceAccount.
+
+## Verification
+
+The last confirmed verification result was 8/11 checks passing.
+
+Backend, gateway, worker and metrics were ready, and the migration Job completed. The gateway /status endpoint independently returned backend=ok.
+
+## Remaining Issues
+
+Reporter readiness remains 0/1. The /report endpoint returns HTTP 503 with:
+parse pod list: unexpected end of JSON input
+
+Reporter ServiceAccount authorization was confirmed, and a diagnostic pod successfully retrieved Kubernetes PodList JSON using that ServiceAccount.
+
+The gateway verification check also failed despite successful independent in-cluster and port-forward tests.
+
+## AI Assistance Disclosure
+
+AI assistance was used for troubleshooting suggestions, Kubernetes configuration guidance, and documentation. Commands and observed results were checked against the local environment.
+'@ | Set-Content -Encoding UTF8 .\FINDINGS.md
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> & "C:\Program Files\Git\bin\bash.exe" ./scenario.sh verify 2>&1 | Tee-Object -FilePath .\verification-output.txt
+==> verifying goal state in namespace debug-lab
+  [32mPASS[0m  migrate Job completed
+  [32mPASS[0m  deployment backend: 1/1 ready
+  [32mPASS[0m  deployment gateway: 1/1 ready
+  [32mPASS[0m  deployment worker: 1/1 ready
+  [31mFAIL[0m  deployment reporter: 0/1 ready
+  [32mPASS[0m  deployment metrics: 1/1 ready
+  [32mPASS[0m  no pods in CrashLoopBackOff
+  [32mPASS[0m  ServiceAccount debug-lab/reporter can list pods
+  [32mPASS[0m  backend answers on http://backend:8080/healthz
+  [31mFAIL[0m  gateway /status does not report backend=ok
+  [31mFAIL[0m  reporter /report does not return a pod count
+
+[31m3 check(s) failing[0m, 8 passing. Keep digging ΓÇö every failure is a symptom.
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> cd "C:\Users\dell\Downloads\eb-devops-takehome-v2"
