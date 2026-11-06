@@ -1,0 +1,7 @@
+
+apiVersion: v2
+name: eb-demo
+description: Enterprise Bot DevOps assessment service
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
