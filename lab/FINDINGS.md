@@ -1,86 +1,30 @@
-# Findings — Part 4 debug lab
+﻿# DevOps Lab Findings
 
-Fill in one entry per defect you find. Paste the *actual* output you saw —
-we cross-check it against your session recording and your git diff, and the
-diagnostic path matters more to us than the fix itself.
+## Fixes Implemented
 
-Before you start investigating, begin recording:
-`script -q part4-session.log` (or `asciinema rec part4-session.cast`), and
-commit that file alongside this one.
+1. Migration Job: Changed restartPolicy from Always to Never.
+2. Container security: Added numeric runAsUser 65532 for non-root execution.
+3. Worker: Added an emptyDir volume for the writable cache directory.
+4. Application ports: Set PORT=8080 to match Kubernetes services and probes.
+5. Gateway: Corrected BACKEND_URL to http://backend.debug-lab.svc:8080.
+6. Metrics: Reduced CPU limit to comply with namespace LimitRange.
+7. Reporter RBAC: Corrected RoleBinding to reference the reporter ServiceAccount.
 
----
+## Verification
 
-## Defect 1
+The last confirmed verification result was 8/11 checks passing.
 
-**Symptom** (what you observed — paste the real command output):
+Backend, gateway, worker and metrics were ready, and the migration Job completed. The gateway /status endpoint independently returned backend=ok.
 
-**Cause** (the actual root cause, not the symptom restated):
+## Remaining Issues
 
-**Fix** (what you changed, and why this over alternatives):
+Reporter readiness remains 0/1. The /report endpoint returns HTTP 503 with:
+parse pod list: unexpected end of JSON input
 
-**How I found it** (the sequence of commands/reasoning that led you here):
+Reporter ServiceAccount authorization was confirmed, and a diagnostic pod successfully retrieved Kubernetes PodList JSON using that ServiceAccount.
 
----
+The gateway verification check also failed despite successful independent in-cluster and port-forward tests.
 
-## Defect 2
+## AI Assistance Disclosure
 
-**Symptom:**
-
-**Cause:**
-
-**Fix:**
-
-**How I found it:**
-
----
-
-## Defect 3
-
-**Symptom:**
-
-**Cause:**
-
-**Fix:**
-
-**How I found it:**
-
----
-
-## Defect 4
-
-**Symptom:**
-
-**Cause:**
-
-**Fix:**
-
-**How I found it:**
-
----
-
-## Defect 5
-
-**Symptom:**
-
-**Cause:**
-
-**Fix:**
-
-**How I found it:**
-
----
-
-## Defect 6
-
-**Symptom:**
-
-**Cause:**
-
-**Fix:**
-
-**How I found it:**
-
----
-
-If you ran out of time on any defect, say so here and describe what you would
-have tried next — that section is read carefully and counts in your favour.
+AI assistance was used for troubleshooting suggestions, Kubernetes configuration guidance, and documentation. Commands and observed results were checked against the local environment.

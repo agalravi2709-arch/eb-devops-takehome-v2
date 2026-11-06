@@ -1,0 +1,2020 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20261106180351
+Username: DESKTOP-U430F46\dell
+RunAs User: DESKTOP-U430F46\dell
+Configuration Name: 
+Machine: DESKTOP-U430F46 (Microsoft Windows NT 10.0.19045.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+Process ID: 9636
+PSVersion: 5.1.19041.6456
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.19041.6456
+BuildVersion: 10.0.19041.6456
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is .\part4-session.log
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> & "C:\Program Files\Git\bin\bash.exe" ./scenario.sh up
+==> applying cluster environment (cluster-state/)
+namespace/debug-lab created
+Error from server (NotFound): error when creating "cluster-state\\limits.yaml": namespaces "debug-lab" not found
+==> installing the broken chart
+Release "debug-lab" does not exist. Installing it now.
+Error: server-side apply failed for object debug-lab/migrate batch/v1, Kind=Job: Job.batch "migrate" is invalid: spec.te
+mplate.spec.restartPolicy: Required value: valid values: "OnFailure", "Never"
+
+helm reported an error. That is not your machine misbehaving —
+it is part of the exercise. Read the error; it is evidence.
+
+Lab is (partially) installed. Investigate with kubectl, fix the chart,
+re-run './scenario.sh up' to apply your fixes, and './scenario.sh verify'
+to check progress.
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl apply -f .\cluster-state\
+limitrange/debug-lab-guardrails created
+namespace/debug-lab unchanged
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> & "C:\Program Files\Git\bin\bash.exe" ./scenario.sh up
+==> applying cluster environment (cluster-state/)
+limitrange/debug-lab-guardrails unchanged
+namespace/debug-lab unchanged
+==> installing the broken chart
+Release "debug-lab" has been upgraded. Happy Helming!
+NAME: debug-lab
+LAST DEPLOYED: Fri Nov  6 18:08:01 2026
+NAMESPACE: debug-lab
+STATUS: deployed
+REVISION: 2
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+NOTES:
+debug-lab installed into namespace debug-lab.
+
+Goal state:
+  * migrate Job: Completed
+  * backend, gateway, worker, reporter, metrics: all pods Running and 1/1 Ready
+  * gateway /status reports {"self":"ok","backend":"ok",...}
+
+Check your progress at any time:
+  ./scenario.sh verify
+
+Lab is (partially) installed. Investigate with kubectl, fix the chart,
+re-run './scenario.sh up' to apply your fixes, and './scenario.sh verify'
+to check progress.
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pods -n debug-lab
+NAME                        READY   STATUS                       RESTARTS   AGE
+backend-7948fd6b4b-q87sj    0/1     CreateContainerConfigError   0          4m19s
+gateway-5cbdcd4bf8-76gfr    0/1     CreateContainerConfigError   0          4m19s
+metrics-547dccf75-ttqzs     0/1     CreateContainerConfigError   0          4m19s
+migrate-7dkcl               0/1     CreateContainerConfigError   0          32s
+reporter-6f8bff6b8d-hskgx   0/1     CreateContainerConfigError   0          4m19s
+worker-5fcd6b9b6b-dtc8w     0/1     CreateContainerConfigError   0          4m19s
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get jobs -n debug-lab
+NAME      STATUS    COMPLETIONS   DURATION   AGE
+migrate   Running   0/1           32s        32s
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get deployments -n debug-lab
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+backend    0/1     1            0           4m22s
+gateway    0/1     1            0           4m22s
+metrics    0/1     1            0           4m22s
+reporter   0/1     1            0           4m22s
+worker     0/1     1            0           4m22s
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> & "C:\Program Files\Git\bin\bash.exe" ./scenario.sh verify
+==> verifying goal state in namespace debug-lab
+  FAIL  migrate Job has not completed (does it exist? did the chart even install cleanly?)
+  FAIL  deployment backend: 0/1 ready
+  FAIL  deployment gateway: 0/1 ready
+  FAIL  deployment worker: 0/1 ready
+  FAIL  deployment reporter: 0/1 ready
+  FAIL  deployment metrics: 0/1 ready
+  PASS  no pods in CrashLoopBackOff
+  FAIL  ServiceAccount debug-lab/reporter cannot list pods
+  FAIL  backend does not answer on http://backend:8080/healthz
+  FAIL  gateway /status does not report backend=ok
+  FAIL  reporter /report does not return a pod count
+
+10 check(s) failing, 1 passing. Keep digging — every failure is a symptom.
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl describe pod backend-7948fd6b4b-q87sj -n debug-lab
+Name:             backend-7948fd6b4b-q87sj
+Namespace:        debug-lab
+Priority:         0
+Service Account:  default
+Node:             demo-control-plane/172.18.0.2
+Start Time:       Fri, 06 Nov 2026 18:04:15 +0530
+Labels:           app=backend
+                  app.kubernetes.io/managed-by=Helm
+                  app.kubernetes.io/part-of=eb-debug-lab
+                  helm.sh/chart=debug-lab-2.0.0
+                  pod-template-hash=7948fd6b4b
+Annotations:      <none>
+Status:           Pending
+IP:               10.244.0.12
+IPs:
+  IP:           10.244.0.12
+Controlled By:  ReplicaSet/backend-7948fd6b4b
+Containers:
+  backend:
+    Container ID:
+    Image:          docker.io/ebinterview/eb-debug-app:1.0.1
+    Image ID:
+    Port:           8080/TCP (http)
+    Host Port:      0/TCP (http)
+    State:          Waiting
+      Reason:       CreateContainerConfigError
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      APP_MODE:  api
+      APP_NAME:  backend
+      VERSION:   2.0.0
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-xvnm5 (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True
+  Initialized                 True
+  Ready                       False
+  ContainersReady             False
+  PodScheduled                True
+Volumes:
+  kube-api-access-xvnm5:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age                   From               Message
+  ----     ------     ----                  ----               -------
+  Normal   Scheduled  5m44s                 default-scheduler  Successfully assigned debug-lab/backend-7948fd6b4b-q87sj
+to demo-control-plane
+  Normal   Pulling    5m42s                 kubelet            spec.containers{backend}: Pulling image "docker.io/ebinte
+rview/eb-debug-app:1.0.1"
+  Normal   Pulled     5m27s                 kubelet            spec.containers{backend}: Successfully pulled image "dock
+er.io/ebinterview/eb-debug-app:1.0.1" in 2.491s (15.78s including waiting). Image size: 3279587 bytes.
+  Normal   Pulled     25s (x24 over 5m26s)  kubelet            spec.containers{backend}: Container image "docker.io/ebin
+terview/eb-debug-app:1.0.1" already present on machine and can be accessed by the pod
+  Warning  Failed     12s (x26 over 5m27s)  kubelet            spec.containers{backend}: Error: container has runAsNonRo
+ot and image has non-numeric user (nonroot), cannot verify user is non-root (pod: "backend-7948fd6b4b-q87sj_debug-lab(24
+0dc147-cbb0-4ab6-b34e-ff9ed35c1024)", container: backend)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> Select-String -Path ".\broken-chart\templates\*.yaml" -Pattern "runAsNonRoot|runAsUser" -Context 1,2
+
+  broken-chart\templates\backend.yaml:38:          securityContext:
+> broken-chart\templates\backend.yaml:39:            runAsNonRoot: true
+> broken-chart\templates\backend.yaml:40:            runAsUser: 65532
+  broken-chart\templates\backend.yaml:41:            readOnlyRootFilesystem: true
+  broken-chart\templates\backend.yaml:42:            allowPrivilegeEscalation: false
+  broken-chart\templates\gateway.yaml:38:          securityContext:
+> broken-chart\templates\gateway.yaml:39:            runAsNonRoot: true
+  broken-chart\templates\gateway.yaml:40:            readOnlyRootFilesystem: true
+  broken-chart\templates\gateway.yaml:41:            allowPrivilegeEscalation: false
+  broken-chart\templates\metrics.yaml:38:          securityContext:
+> broken-chart\templates\metrics.yaml:39:            runAsNonRoot: true
+  broken-chart\templates\metrics.yaml:40:            readOnlyRootFilesystem: true
+  broken-chart\templates\metrics.yaml:41:            allowPrivilegeEscalation: false
+  broken-chart\templates\migrate-job.yaml:28:          securityContext:
+> broken-chart\templates\migrate-job.yaml:29:            runAsNonRoot: true
+  broken-chart\templates\migrate-job.yaml:30:            readOnlyRootFilesystem: true
+  broken-chart\templates\migrate-job.yaml:31:            allowPrivilegeEscalation: false
+  broken-chart\templates\reporter.yaml:43:          securityContext:
+> broken-chart\templates\reporter.yaml:44:            runAsNonRoot: true
+  broken-chart\templates\reporter.yaml:45:            readOnlyRootFilesystem: true
+  broken-chart\templates\reporter.yaml:46:            allowPrivilegeEscalation: false
+  broken-chart\templates\worker.yaml:38:          securityContext:
+> broken-chart\templates\worker.yaml:39:            runAsNonRoot: true
+  broken-chart\templates\worker.yaml:40:            readOnlyRootFilesystem: true
+  broken-chart\templates\worker.yaml:41:            allowPrivilegeEscalation: false
+
+
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm upgrade debug-lab ./broken-chart -n debug-lab --wait --timeout 120s
+level=WARN msg="upgrade failed" name=debug-lab error="server-side apply failed for object debug-lab/migrate batch/v1, Ki
+nd=Job: Job.batch \"migrate\" is invalid: spec.template: Invalid value: {\"labels\":{\"app\":\"migrate\",\"batch.kuberne
+tes.io/controller-uid\":\"0e34d6fa-5b35-41e4-9e1e-c369a90da720\",\"batch.kubernetes.io/job-name\":\"migrate\",\"controll
+er-uid\":\"0e34d6fa-5b35-41e4-9e1e-c369a90da720\",\"job-name\":\"migrate\"},\"Spec\":{\"Volumes\":null,\"InitContainers\
+":null,\"Containers\":[{\"Name\":\"migrate\",\"Image\":\"docker.io/ebinterview/eb-debug-app:1.0.1\",\"Command\":null,\"A
+rgs\":null,\"WorkingDir\":\"\",\"Ports\":null,\"EnvFrom\":null,\"Env\":[{\"Name\":\"APP_MODE\",\"Value\":\"migrate\",\"V
+alueFrom\":null},{\"Name\":\"APP_NAME\",\"Value\":\"migrate\",\"ValueFrom\":null},{\"Name\":\"VERSION\",\"Value\":\"2.0.
+0\",\"ValueFrom\":null}],\"Resources\":{\"Limits\":{\"cpu\":\"200m\",\"memory\":\"128Mi\"},\"Requests\":{\"cpu\":\"50m\"
+,\"memory\":\"64Mi\"},\"Claims\":null},\"ResizePolicy\":null,\"RestartPolicy\":null,\"RestartPolicyRules\":null,\"Volume
+Mounts\":null,\"VolumeDevices\":null,\"LivenessProbe\":null,\"ReadinessProbe\":null,\"StartupProbe\":null,\"Lifecycle\":
+null,\"TerminationMessagePath\":\"/dev/termination-log\",\"TerminationMessagePolicy\":\"File\",\"ImagePullPolicy\":\"IfN
+otPresent\",\"SecurityContext\":{\"Capabilities\":{\"Add\":null,\"Drop\":[\"ALL\"]},\"Privileged\":null,\"SELinuxOptions
+\":null,\"WindowsOptions\":null,\"RunAsUser\":65532,\"RunAsGroup\":null,\"RunAsNonRoot\":true,\"ReadOnlyRootFilesystem\"
+:true,\"AllowPrivilegeEscalation\":false,\"ProcMount\":null,\"SeccompProfile\":null,\"AppArmorProfile\":null},\"Stdin\":
+false,\"StdinOnce\":false,\"TTY\":false}],\"EphemeralContainers\":null,\"RestartPolicy\":\"Never\",\"TerminationGracePer
+iodSeconds\":30,\"ActiveDeadlineSeconds\":null,\"DNSPolicy\":\"ClusterFirst\",\"NodeSelector\":null,\"ServiceAccountName
+\":\"\",\"DeprecatedServiceAccount\":\"\",\"AutomountServiceAccountToken\":null,\"NodeName\":\"\",\"HostNetwork\":false,
+\"HostPID\":false,\"HostIPC\":false,\"ShareProcessNamespace\":null,\"SecurityContext\":{\"SELinuxOptions\":null,\"Window
+sOptions\":null,\"RunAsUser\":null,\"RunAsGroup\":null,\"RunAsNonRoot\":null,\"SupplementalGroups\":null,\"SupplementalG
+roupsPolicy\":null,\"FSGroup\":null,\"Sysctls\":null,\"FSGroupChangePolicy\":null,\"SeccompProfile\":null,\"AppArmorProf
+ile\":null,\"SELinuxChangePolicy\":null},\"ImagePullSecrets\":null,\"Hostname\":\"\",\"Subdomain\":\"\",\"Affinity\":nul
+l,\"SchedulerName\":\"default-scheduler\",\"Tolerations\":null,\"HostAliases\":null,\"PriorityClassName\":\"\",\"Priorit
+y\":null,\"DNSConfig\":null,\"ReadinessGates\":null,\"RuntimeClassName\":null,\"EnableServiceLinks\":null,\"PreemptionPo
+licy\":null,\"Overhead\":null,\"TopologySpreadConstraints\":null,\"SetHostnameAsFQDN\":null,\"OS\":null,\"HostUsers\":nu
+ll,\"SchedulingGates\":null,\"ResourceClaims\":null,\"Resources\":null,\"HostnameOverride\":null,\"SchedulingGroup\":nul
+l,\"EvictionResponders\":null}}: field is immutable"
+Error: UPGRADE FAILED: server-side apply failed for object debug-lab/migrate batch/v1, Kind=Job: Job.batch "migrate" is
+invalid: spec.template: Invalid value: {"labels":{"app":"migrate","batch.kubernetes.io/controller-uid":"0e34d6fa-5b35-41
+e4-9e1e-c369a90da720","batch.kubernetes.io/job-name":"migrate","controller-uid":"0e34d6fa-5b35-41e4-9e1e-c369a90da720","
+job-name":"migrate"},"Spec":{"Volumes":null,"InitContainers":null,"Containers":[{"Name":"migrate","Image":"docker.io/ebi
+nterview/eb-debug-app:1.0.1","Command":null,"Args":null,"WorkingDir":"","Ports":null,"EnvFrom":null,"Env":[{"Name":"APP_
+MODE","Value":"migrate","ValueFrom":null},{"Name":"APP_NAME","Value":"migrate","ValueFrom":null},{"Name":"VERSION","Valu
+e":"2.0.0","ValueFrom":null}],"Resources":{"Limits":{"cpu":"200m","memory":"128Mi"},"Requests":{"cpu":"50m","memory":"64
+Mi"},"Claims":null},"ResizePolicy":null,"RestartPolicy":null,"RestartPolicyRules":null,"VolumeMounts":null,"VolumeDevice
+s":null,"LivenessProbe":null,"ReadinessProbe":null,"StartupProbe":null,"Lifecycle":null,"TerminationMessagePath":"/dev/t
+ermination-log","TerminationMessagePolicy":"File","ImagePullPolicy":"IfNotPresent","SecurityContext":{"Capabilities":{"A
+dd":null,"Drop":["ALL"]},"Privileged":null,"SELinuxOptions":null,"WindowsOptions":null,"RunAsUser":65532,"RunAsGroup":nu
+ll,"RunAsNonRoot":true,"ReadOnlyRootFilesystem":true,"AllowPrivilegeEscalation":false,"ProcMount":null,"SeccompProfile":
+null,"AppArmorProfile":null},"Stdin":false,"StdinOnce":false,"TTY":false}],"EphemeralContainers":null,"RestartPolicy":"N
+ever","TerminationGracePeriodSeconds":30,"ActiveDeadlineSeconds":null,"DNSPolicy":"ClusterFirst","NodeSelector":null,"Se
+rviceAccountName":"","DeprecatedServiceAccount":"","AutomountServiceAccountToken":null,"NodeName":"","HostNetwork":false
+,"HostPID":false,"HostIPC":false,"ShareProcessNamespace":null,"SecurityContext":{"SELinuxOptions":null,"WindowsOptions":
+null,"RunAsUser":null,"RunAsGroup":null,"RunAsNonRoot":null,"SupplementalGroups":null,"SupplementalGroupsPolicy":null,"F
+SGroup":null,"Sysctls":null,"FSGroupChangePolicy":null,"SeccompProfile":null,"AppArmorProfile":null,"SELinuxChangePolicy
+":null},"ImagePullSecrets":null,"Hostname":"","Subdomain":"","Affinity":null,"SchedulerName":"default-scheduler","Tolera
+tions":null,"HostAliases":null,"PriorityClassName":"","Priority":null,"DNSConfig":null,"ReadinessGates":null,"RuntimeCla
+ssName":null,"EnableServiceLinks":null,"PreemptionPolicy":null,"Overhead":null,"TopologySpreadConstraints":null,"SetHost
+nameAsFQDN":null,"OS":null,"HostUsers":null,"SchedulingGates":null,"ResourceClaims":null,"Resources":null,"HostnameOverr
+ide":null,"SchedulingGroup":null,"EvictionResponders":null}}: field is immutable
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl delete job migrate -n debug-lab
+job.batch "migrate" deleted from debug-lab namespace
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm upgrade debug-lab ./broken-chart -n debug-lab --timeout 120s
+Release "debug-lab" has been upgraded. Happy Helming!
+NAME: debug-lab
+LAST DEPLOYED: Fri Nov  6 18:16:58 2026
+NAMESPACE: debug-lab
+STATUS: deployed
+REVISION: 4
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+NOTES:
+debug-lab installed into namespace debug-lab.
+
+Goal state:
+  * migrate Job: Completed
+  * backend, gateway, worker, reporter, metrics: all pods Running and 1/1 Ready
+  * gateway /status reports {"self":"ok","backend":"ok",...}
+
+Check your progress at any time:
+  ./scenario.sh verify
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pods -n debug-lab
+NAME                        READY   STATUS                       RESTARTS      AGE
+backend-7948fd6b4b-q87sj    0/1     CreateContainerConfigError   0             12m
+backend-794c558bfb-978j8    0/1     Running                      0             100s
+gateway-5cbdcd4bf8-76gfr    0/1     CreateContainerConfigError   0             12m
+gateway-69d86c676-wvngf     0/1     Running                      0             100s
+metrics-547dccf75-ttqzs     0/1     CreateContainerConfigError   0             12m
+migrate-m2lsq               0/1     ContainerCreating            0             0s
+reporter-689754d5bb-76kmf   0/1     Running                      0             100s
+reporter-6f8bff6b8d-hskgx   0/1     CreateContainerConfigError   0             12m
+worker-5fcd6b9b6b-dtc8w     0/1     CreateContainerConfigError   0             12m
+worker-85c774d568-c6vrw     0/1     CrashLoopBackOff             4 (15s ago)   99s
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get jobs -n debug-lab
+NAME      STATUS    COMPLETIONS   DURATION   AGE
+migrate   Running   0/1           1s         1s
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs worker-85c774d568-c6vrw -n debug-lab --previous
+2026/11/06 12:46:44 FATAL: worker could not initialise its cache: mkdir /var/cache/app: read-only file system — the process
+needs a writable directory at /var/cache/app (mount a volume there, or set CACHE_DIR)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl describe pod worker-85c774d568-c6vrw -n debug-lab
+Name:             worker-85c774d568-c6vrw
+Namespace:        debug-lab
+Priority:         0
+Service Account:  default
+Node:             demo-control-plane/172.18.0.2
+Start Time:       Fri, 06 Nov 2026 18:15:20 +0530
+Labels:           app=worker
+                  app.kubernetes.io/managed-by=Helm
+                  app.kubernetes.io/part-of=eb-debug-lab
+                  helm.sh/chart=debug-lab-2.0.0
+                  pod-template-hash=85c774d568
+Annotations:      <none>
+Status:           Running
+IP:               10.244.0.19
+IPs:
+  IP:           10.244.0.19
+Controlled By:  ReplicaSet/worker-85c774d568
+Containers:
+  worker:
+    Container ID:   containerd://2f28833b912a9b80838ef11562c283913b95daf23e5a8f40065f46e1fdf358ae
+    Image:          docker.io/ebinterview/eb-debug-app:1.0.1
+    Image ID:       docker.io/ebinterview/eb-debug-app@sha256:17f41698c10f5c18693339281b92d3cfef16d9fcffcad440a24e7ab19e05c4
+43
+    Port:           8080/TCP (http)
+    Host Port:      0/TCP (http)
+    State:          Waiting
+      Reason:       CrashLoopBackOff
+    Last State:     Terminated
+      Reason:       Error
+      Exit Code:    1
+      Started:      Fri, 06 Nov 2026 18:16:44 +0530
+      Finished:     Fri, 06 Nov 2026 18:16:44 +0530
+    Ready:          False
+    Restart Count:  4
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      APP_MODE:  worker
+      APP_NAME:  worker
+      VERSION:   2.0.0
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-2kfwk (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True
+  Initialized                 True
+  Ready                       False
+  ContainersReady             False
+  PodScheduled                True
+Volumes:
+  kube-api-access-2kfwk:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age                  From               Message
+  ----     ------     ----                 ----               -------
+  Normal   Scheduled  2m33s                default-scheduler  Successfully assigned debug-lab/worker-85c774d568-c6vrw to dem
+o-control-plane
+  Normal   Pulled     69s (x5 over 2m32s)  kubelet            spec.containers{worker}: Container image "docker.io/ebintervie
+w/eb-debug-app:1.0.1" already present on machine and can be accessed by the pod
+  Normal   Created    69s (x5 over 2m32s)  kubelet            spec.containers{worker}: Container created
+  Normal   Started    69s (x5 over 2m32s)  kubelet            spec.containers{worker}: Container started
+  Warning  BackOff    67s (x8 over 2m31s)  kubelet            spec.containers{worker}: Back-off restarting failed container
+worker in pod worker-85c774d568-c6vrw_debug-lab(1e579be0-27ae-43c3-a033-75ea85f213b7)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> Get-Content .\broken-chart\templates\worker.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  labels:
+    app: worker
+    {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.common.port }}
+          env:
+            {{- range $name, $value := .Values.worker.env }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.common.port }}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm lint ./broken-chart
+==> Linting ./broken-chart
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm upgrade debug-lab ./broken-chart -n debug-lab --timeout 120s
+Release "debug-lab" has been upgraded. Happy Helming!
+NAME: debug-lab
+LAST DEPLOYED: Fri Nov  6 18:21:10 2026
+NAMESPACE: debug-lab
+STATUS: deployed
+REVISION: 5
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+NOTES:
+debug-lab installed into namespace debug-lab.
+
+Goal state:
+  * migrate Job: Completed
+  * backend, gateway, worker, reporter, metrics: all pods Running and 1/1 Ready
+  * gateway /status reports {"self":"ok","backend":"ok",...}
+
+Check your progress at any time:
+  ./scenario.sh verify
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pods -n debug-lab
+NAME                        READY   STATUS                       RESTARTS     AGE
+backend-7948fd6b4b-q87sj    0/1     CreateContainerConfigError   0            16m
+backend-794c558bfb-978j8    0/1     Running                      0            5m52s
+gateway-5cbdcd4bf8-76gfr    0/1     CreateContainerConfigError   0            16m
+gateway-69d86c676-wvngf     0/1     Running                      0            5m52s
+metrics-547dccf75-ttqzs     0/1     CreateContainerConfigError   0            16m
+migrate-m2lsq               0/1     Completed                    0            4m12s
+reporter-689754d5bb-76kmf   0/1     Running                      0            5m52s
+reporter-6f8bff6b8d-hskgx   0/1     CreateContainerConfigError   0            16m
+worker-5fcd6b9b6b-dtc8w     0/1     Terminating                  0            16m
+worker-85c774d568-c6vrw     0/1     CrashLoopBackOff             6 (9s ago)   5m51s
+worker-f749d965c-l5qqt      0/1     Pending                      0            0s
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs deployment/worker -n debug-lab --tail=20
+Found 2 pods, using pod/worker-85c774d568-c6vrw
+2026/11/06 12:51:02 FATAL: worker could not initialise its cache: mkdir /var/cache/app: read-only file system — the process
+needs a writable directory at /var/cache/app (mount a volume there, or set CACHE_DIR)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pods -n debug-lab
+NAME                        READY   STATUS                       RESTARTS      AGE
+backend-7948fd6b4b-q87sj    0/1     CreateContainerConfigError   0             17m
+backend-794c558bfb-978j8    0/1     Running                      0             6m41s
+gateway-5cbdcd4bf8-76gfr    0/1     CreateContainerConfigError   0             17m
+gateway-69d86c676-wvngf     0/1     Running                      0             6m41s
+metrics-547dccf75-ttqzs     0/1     CreateContainerConfigError   0             17m
+migrate-m2lsq               0/1     Completed                    0             5m1s
+reporter-689754d5bb-76kmf   0/1     Running                      0             6m41s
+reporter-6f8bff6b8d-hskgx   0/1     CreateContainerConfigError   0             17m
+worker-85c774d568-c6vrw     0/1     CrashLoopBackOff             6 (58s ago)   6m40s
+worker-f749d965c-l5qqt      0/1     Running                      0             49s
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl describe pod worker-f749d965c-l5qqt -n debug-lab
+Name:             worker-f749d965c-l5qqt
+Namespace:        debug-lab
+Priority:         0
+Service Account:  default
+Node:             demo-control-plane/172.18.0.2
+Start Time:       Fri, 06 Nov 2026 18:21:11 +0530
+Labels:           app=worker
+                  app.kubernetes.io/managed-by=Helm
+                  app.kubernetes.io/part-of=eb-debug-lab
+                  helm.sh/chart=debug-lab-2.0.0
+                  pod-template-hash=f749d965c
+Annotations:      <none>
+Status:           Running
+IP:               10.244.0.21
+IPs:
+  IP:           10.244.0.21
+Controlled By:  ReplicaSet/worker-f749d965c
+Containers:
+  worker:
+    Container ID:   containerd://c86a4f03d767fb60ea470ebdb7599f83b2382dfbf4b3927b49b05887d332ee75
+    Image:          docker.io/ebinterview/eb-debug-app:1.0.1
+    Image ID:       docker.io/ebinterview/eb-debug-app@sha256:17f41698c10f5c18693339281b92d3cfef16d9fcffcad440a24e7ab19e05c4
+43
+    Port:           8080/TCP (http)
+    Host Port:      0/TCP (http)
+    State:          Running
+      Started:      Fri, 06 Nov 2026 18:21:12 +0530
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      APP_MODE:  worker
+      APP_NAME:  worker
+      VERSION:   2.0.0
+    Mounts:
+      /var/cache/app from worker-cache (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-6ntd5 (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True
+  Initialized                 True
+  Ready                       False
+  ContainersReady             False
+  PodScheduled                True
+Volumes:
+  worker-cache:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:
+    SizeLimit:  <unset>
+  kube-api-access-6ntd5:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age               From               Message
+  ----     ------     ----              ----               -------
+  Normal   Scheduled  49s               default-scheduler  Successfully assigned debug-lab/worker-f749d965c-l5qqt to demo-co
+ntrol-plane
+  Normal   Pulled     48s               kubelet            spec.containers{worker}: Container image "docker.io/ebinterview/e
+b-debug-app:1.0.1" already present on machine and can be accessed by the pod
+  Normal   Created    48s               kubelet            spec.containers{worker}: Container created
+  Normal   Started    48s               kubelet            spec.containers{worker}: Container started
+  Warning  Unhealthy  1s (x9 over 41s)  kubelet            spec.containers{worker}: Readiness probe failed: Get "http://10.2
+44.0.21:8080/healthz": dial tcp 10.244.0.21:8080: connect: connection refused
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs worker-f749d965c-l5qqt -n debug-lab --tail=20
+2026/11/06 12:51:12 eb-debug-app 2.0.0 starting: mode=worker pod=worker-f749d965c-l5qqt listening on :8081 (image default is
+ 8081; set PORT to override)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm lint ./broken-chart
+==> Linting ./broken-chart
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm upgrade debug-lab ./broken-chart -n debug-lab --timeout 120s
+Release "debug-lab" has been upgraded. Happy Helming!
+NAME: debug-lab
+LAST DEPLOYED: Fri Nov  6 18:23:46 2026
+NAMESPACE: debug-lab
+STATUS: deployed
+REVISION: 6
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+NOTES:
+debug-lab installed into namespace debug-lab.
+
+Goal state:
+  * migrate Job: Completed
+  * backend, gateway, worker, reporter, metrics: all pods Running and 1/1 Ready
+  * gateway /status reports {"self":"ok","backend":"ok",...}
+
+Check your progress at any time:
+  ./scenario.sh verify
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pods -n debug-lab
+NAME                        READY   STATUS                       RESTARTS   AGE
+backend-7948fd6b4b-q87sj    0/1     CreateContainerConfigError   0          19m
+backend-794c558bfb-978j8    0/1     Running                      0          8m31s
+gateway-5cbdcd4bf8-76gfr    0/1     CreateContainerConfigError   0          19m
+gateway-69d86c676-wvngf     0/1     Running                      0          8m31s
+metrics-547dccf75-ttqzs     0/1     CreateContainerConfigError   0          19m
+migrate-m2lsq               0/1     Completed                    0          6m51s
+reporter-689754d5bb-76kmf   0/1     Running                      0          8m31s
+reporter-6f8bff6b8d-hskgx   0/1     CreateContainerConfigError   0          19m
+worker-764f6b8bcf-xdjzq     0/1     Running                      0          3s
+worker-f749d965c-l5qqt      0/1     Running                      0          2m39s
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pods -n debug-lab
+NAME                        READY   STATUS                       RESTARTS   AGE
+backend-7948fd6b4b-q87sj    0/1     CreateContainerConfigError   0          20m
+backend-794c558bfb-978j8    0/1     Running                      0          9m12s
+gateway-5cbdcd4bf8-76gfr    0/1     CreateContainerConfigError   0          20m
+gateway-69d86c676-wvngf     0/1     Running                      0          9m12s
+metrics-547dccf75-ttqzs     0/1     CreateContainerConfigError   0          20m
+migrate-m2lsq               0/1     Completed                    0          7m32s
+reporter-689754d5bb-76kmf   0/1     Running                      0          9m12s
+reporter-6f8bff6b8d-hskgx   0/1     CreateContainerConfigError   0          20m
+worker-764f6b8bcf-xdjzq     1/1     Running                      0          44s
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs worker-764f6b8bcf-xdjzq -n debug-lab --tail=10
+2026/11/06 12:53:48 eb-debug-app 2.0.0 starting: mode=worker pod=worker-764f6b8bcf-xdjzq listening on :8080 (image default i
+s 8081; set PORT to override)
+2026/11/06 12:53:54 GET /healthz -> 200 (from 10.244.0.1:38368)
+2026/11/06 12:53:59 GET /healthz -> 200 (from 10.244.0.1:42932)
+2026/11/06 12:54:04 GET /healthz -> 200 (from 10.244.0.1:42934)
+2026/11/06 12:54:09 GET /healthz -> 200 (from 10.244.0.1:57420)
+2026/11/06 12:54:14 GET /healthz -> 200 (from 10.244.0.1:57432)
+2026/11/06 12:54:19 GET /healthz -> 200 (from 10.244.0.1:40036)
+2026/11/06 12:54:24 GET /healthz -> 200 (from 10.244.0.1:40046)
+2026/11/06 12:54:29 GET /healthz -> 200 (from 10.244.0.1:47664)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs backend-794c558bfb-978j8 -n debug-lab --tail=10
+2026/11/06 12:45:21 eb-debug-app 2.0.0 starting: mode=api pod=backend-794c558bfb-978j8 listening on :8081 (image default is
+8081; set PORT to override)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs gateway-69d86c676-wvngf -n debug-lab --tail=10
+2026/11/06 12:45:21 eb-debug-app 2.0.0 starting: mode=gateway pod=gateway-69d86c676-wvngf listening on :8081 (image default
+is 8081; set PORT to override)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs reporter-689754d5bb-76kmf -n debug-lab --tail=10
+2026/11/06 12:45:21 eb-debug-app 2.0.0 starting: mode=reporter pod=reporter-689754d5bb-76kmf listening on :8081 (image defau
+lt is 8081; set PORT to override)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl describe deployment metrics -n debug-lab
+Name:                   metrics
+Namespace:              debug-lab
+CreationTimestamp:      Fri, 06 Nov 2026 18:04:15 +0530
+Labels:                 app=metrics
+                        app.kubernetes.io/managed-by=Helm
+                        app.kubernetes.io/part-of=eb-debug-lab
+                        helm.sh/chart=debug-lab-2.0.0
+Annotations:            deployment.kubernetes.io/revision: 2
+                        meta.helm.sh/release-name: debug-lab
+                        meta.helm.sh/release-namespace: debug-lab
+Selector:               app=metrics
+Replicas:               1 desired | 0 updated | 1 total | 0 available | 2 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=metrics
+           app.kubernetes.io/managed-by=Helm
+           app.kubernetes.io/part-of=eb-debug-lab
+           helm.sh/chart=debug-lab-2.0.0
+  Containers:
+   metrics:
+    Image:      docker.io/ebinterview/eb-debug-app:1.0.1
+    Port:       8080/TCP (http)
+    Host Port:  0/TCP (http)
+    Limits:
+      cpu:     4
+      memory:  128Mi
+    Requests:
+      cpu:      2
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      APP_MODE:    api
+      APP_NAME:    metrics
+      VERSION:     2.0.0
+    Mounts:        <none>
+  Volumes:         <none>
+  Node-Selectors:  <none>
+  Tolerations:     <none>
+Conditions:
+  Type             Status  Reason
+  ----             ------  ------
+  Available        False   MinimumReplicasUnavailable
+  Progressing      True    NewReplicaSetCreated
+  ReplicaFailure   True    FailedCreate
+OldReplicaSets:    metrics-547dccf75 (1/1 replicas created)
+NewReplicaSet:     metrics-6c57877dc7 (0/1 replicas created)
+Events:
+  Type    Reason             Age    From                   Message
+  ----    ------             ----   ----                   -------
+  Normal  ScalingReplicaSet  20m    deployment-controller  Scaled up replica set metrics-547dccf75 from 0 to 1
+  Normal  ScalingReplicaSet  9m28s  deployment-controller  Scaled up replica set metrics-6c57877dc7 from 0 to 1
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl describe pod metrics-547dccf75-ttqzs -n debug-lab
+Name:             metrics-547dccf75-ttqzs
+Namespace:        debug-lab
+Priority:         0
+Service Account:  default
+Node:             demo-control-plane/172.18.0.2
+Start Time:       Fri, 06 Nov 2026 18:04:15 +0530
+Labels:           app=metrics
+                  app.kubernetes.io/managed-by=Helm
+                  app.kubernetes.io/part-of=eb-debug-lab
+                  helm.sh/chart=debug-lab-2.0.0
+                  pod-template-hash=547dccf75
+Annotations:      <none>
+Status:           Pending
+IP:               10.244.0.11
+IPs:
+  IP:           10.244.0.11
+Controlled By:  ReplicaSet/metrics-547dccf75
+Containers:
+  metrics:
+    Container ID:
+    Image:          docker.io/ebinterview/eb-debug-app:1.0.1
+    Image ID:
+    Port:           8080/TCP (http)
+    Host Port:      0/TCP (http)
+    State:          Waiting
+      Reason:       CreateContainerConfigError
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      cpu:     4
+      memory:  128Mi
+    Requests:
+      cpu:      2
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      APP_MODE:  api
+      APP_NAME:  metrics
+      VERSION:   2.0.0
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-v9qz8 (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True
+  Initialized                 True
+  Ready                       False
+  ContainersReady             False
+  PodScheduled                True
+Volumes:
+  kube-api-access-v9qz8:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age                 From               Message
+  ----     ------     ----                ----               -------
+  Normal   Scheduled  20m                 default-scheduler  Successfully assigned debug-lab/metrics-547dccf75-ttqzs to demo
+-control-plane
+  Normal   Pulling    20m                 kubelet            spec.containers{metrics}: Pulling image "docker.io/ebinterview/
+eb-debug-app:1.0.1"
+  Normal   Pulled     20m                 kubelet            spec.containers{metrics}: Successfully pulled image "docker.io/
+ebinterview/eb-debug-app:1.0.1" in 8.724s (8.724s including waiting). Image size: 3279587 bytes.
+  Warning  Failed     25s (x93 over 20m)  kubelet            spec.containers{metrics}: Error: container has runAsNonRoot and
+ image has non-numeric user (nonroot), cannot verify user is non-root (pod: "metrics-547dccf75-ttqzs_debug-lab(a240e9ce-4428
+-487c-b9f0-a19e4076cc7d)", container: metrics)
+  Normal   Pulled     25s (x92 over 20m)  kubelet            spec.containers{metrics}: Container image "docker.io/ebintervie
+w/eb-debug-app:1.0.1" already present on machine and can be accessed by the pod
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> Get-Content .\broken-chart\templates\backend.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+    {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.common.port }}
+          env:
+            {{- range $name, $value := .Values.backend.env }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.common.port }}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  labels:
+    app: backend
+    {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: {{ .Values.common.port }}
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> Get-Content .\broken-chart\templates\gateway.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  labels:
+    app: gateway
+    {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.gateway.replicas }}
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: gateway
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.common.port }}
+          env:
+            {{- range $name, $value := .Values.gateway.env }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.common.port }}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.gateway.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  labels:
+    app: gateway
+    {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: gateway
+  ports:
+    - name: http
+      port: 80
+      targetPort: {{ .Values.common.port }}
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> Get-Content .\broken-chart\templates\reporter.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporter
+  labels:
+    app: reporter
+    {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.reporter.replicas }}
+  selector:
+    matchLabels:
+      app: reporter
+  template:
+    metadata:
+      labels:
+        app: reporter
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ .Values.reporter.serviceAccountName }}
+      containers:
+        - name: reporter
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.common.port }}
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- range $name, $value := .Values.reporter.env }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.common.port }}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.reporter.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reporter
+  labels:
+    app: reporter
+    {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: reporter
+  ports:
+    - name: http
+      port: 8080
+      targetPort: {{ .Values.common.port }}
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm lint ./broken-chart
+==> Linting ./broken-chart
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm upgrade debug-lab ./broken-chart -n debug-lab --timeout 120s
+Release "debug-lab" has been upgraded. Happy Helming!
+NAME: debug-lab
+LAST DEPLOYED: Fri Nov  6 18:28:57 2026
+NAMESPACE: debug-lab
+STATUS: deployed
+REVISION: 7
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+NOTES:
+debug-lab installed into namespace debug-lab.
+
+Goal state:
+  * migrate Job: Completed
+  * backend, gateway, worker, reporter, metrics: all pods Running and 1/1 Ready
+  * gateway /status reports {"self":"ok","backend":"ok",...}
+
+Check your progress at any time:
+  ./scenario.sh verify
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pods -n debug-lab
+NAME                        READY   STATUS                       RESTARTS   AGE
+backend-749c5dff5b-xd7vp    0/1     ContainerCreating            0          1s
+backend-7948fd6b4b-q87sj    0/1     Terminating                  0          24m
+backend-794c558bfb-978j8    0/1     Running                      0          13m
+gateway-5cbdcd4bf8-76gfr    0/1     Terminating                  0          24m
+gateway-6664dc87dd-47gw4    0/1     ContainerCreating            0          1s
+gateway-69d86c676-wvngf     0/1     Running                      0          13m
+metrics-547dccf75-ttqzs     0/1     CreateContainerConfigError   0          24m
+migrate-m2lsq               0/1     Completed                    0          12m
+reporter-64479ff478-fsrkd   0/1     Pending                      0          1s
+reporter-689754d5bb-76kmf   0/1     Running                      0          13m
+reporter-6f8bff6b8d-hskgx   0/1     Terminating                  0          24m
+worker-764f6b8bcf-xdjzq     1/1     Running                      0          5m12s
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl describe replicaset metrics-6c57877dc7 -n debug-lab
+Name:           metrics-6c57877dc7
+Namespace:      debug-lab
+Selector:       app=metrics,pod-template-hash=6c57877dc7
+Labels:         app=metrics
+                app.kubernetes.io/managed-by=Helm
+                app.kubernetes.io/part-of=eb-debug-lab
+                helm.sh/chart=debug-lab-2.0.0
+                pod-template-hash=6c57877dc7
+Annotations:    deployment.kubernetes.io/desired-replicas: 1
+                deployment.kubernetes.io/max-replicas: 2
+                deployment.kubernetes.io/revision: 2
+                meta.helm.sh/release-name: debug-lab
+                meta.helm.sh/release-namespace: debug-lab
+Controlled By:  Deployment/metrics
+Replicas:       0 current / 1 desired
+Pods Status:    0 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+  Labels:  app=metrics
+           app.kubernetes.io/managed-by=Helm
+           app.kubernetes.io/part-of=eb-debug-lab
+           helm.sh/chart=debug-lab-2.0.0
+           pod-template-hash=6c57877dc7
+  Containers:
+   metrics:
+    Image:      docker.io/ebinterview/eb-debug-app:1.0.1
+    Port:       8080/TCP (http)
+    Host Port:  0/TCP (http)
+    Limits:
+      cpu:     4
+      memory:  128Mi
+    Requests:
+      cpu:      2
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      APP_MODE:    api
+      APP_NAME:    metrics
+      VERSION:     2.0.0
+    Mounts:        <none>
+  Volumes:         <none>
+  Node-Selectors:  <none>
+  Tolerations:     <none>
+Conditions:
+  Type             Status  Reason
+  ----             ------  ------
+  ReplicaFailure   True    FailedCreate
+Events:
+  Type     Reason        Age                  From                   Message
+  ----     ------        ----                 ----                   -------
+  Warning  FailedCreate  13m                  replicaset-controller  Error creating: pods "metrics-6c57877dc7-nlzlt" is forb
+idden: maximum cpu usage per Container is 1, but limit is 4
+  Warning  FailedCreate  13m                  replicaset-controller  Error creating: pods "metrics-6c57877dc7-dtlpk" is forb
+idden: maximum cpu usage per Container is 1, but limit is 4
+  Warning  FailedCreate  13m                  replicaset-controller  Error creating: pods "metrics-6c57877dc7-mrn4z" is forb
+idden: maximum cpu usage per Container is 1, but limit is 4
+  Warning  FailedCreate  13m                  replicaset-controller  Error creating: pods "metrics-6c57877dc7-zx9mh" is forb
+idden: maximum cpu usage per Container is 1, but limit is 4
+  Warning  FailedCreate  13m                  replicaset-controller  Error creating: pods "metrics-6c57877dc7-m8hr5" is forb
+idden: maximum cpu usage per Container is 1, but limit is 4
+  Warning  FailedCreate  13m                  replicaset-controller  Error creating: pods "metrics-6c57877dc7-b85rx" is forb
+idden: maximum cpu usage per Container is 1, but limit is 4
+  Warning  FailedCreate  13m                  replicaset-controller  Error creating: pods "metrics-6c57877dc7-c868d" is forb
+idden: maximum cpu usage per Container is 1, but limit is 4
+  Warning  FailedCreate  13m                  replicaset-controller  Error creating: pods "metrics-6c57877dc7-fknlf" is forb
+idden: maximum cpu usage per Container is 1, but limit is 4
+  Warning  FailedCreate  13m                  replicaset-controller  Error creating: pods "metrics-6c57877dc7-m9nmw" is forb
+idden: maximum cpu usage per Container is 1, but limit is 4
+  Warning  FailedCreate  2m44s (x9 over 13m)  replicaset-controller  (combined from similar events): Error creating: pods "m
+etrics-6c57877dc7-5sn62" is forbidden: maximum cpu usage per Container is 1, but limit is 4
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl describe limitrange debug-lab-guardrails -n debug-lab
+Name:       debug-lab-guardrails
+Namespace:  debug-lab
+Type        Resource  Min  Max    Default Request  Default Limit  Max Limit/Request Ratio
+----        --------  ---  ---    ---------------  -------------  -----------------------
+Container   memory    -    512Mi  64Mi             128Mi          -
+Container   cpu       -    1      50m              200m           -
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm lint ./broken-chart
+==> Linting ./broken-chart
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm upgrade debug-lab ./broken-chart -n debug-lab --timeout 120s
+Release "debug-lab" has been upgraded. Happy Helming!
+NAME: debug-lab
+LAST DEPLOYED: Fri Nov  6 18:31:18 2026
+NAMESPACE: debug-lab
+STATUS: deployed
+REVISION: 8
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+NOTES:
+debug-lab installed into namespace debug-lab.
+
+Goal state:
+  * migrate Job: Completed
+  * backend, gateway, worker, reporter, metrics: all pods Running and 1/1 Ready
+  * gateway /status reports {"self":"ok","backend":"ok",...}
+
+Check your progress at any time:
+  ./scenario.sh verify
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pods -n debug-lab
+NAME                        READY   STATUS      RESTARTS   AGE
+backend-749c5dff5b-xd7vp    1/1     Running     0          2m24s
+gateway-6664dc87dd-47gw4    0/1     Running     0          2m24s
+gateway-69d86c676-wvngf     0/1     Running     0          16m
+migrate-m2lsq               0/1     Completed   0          14m
+reporter-64479ff478-fsrkd   0/1     Running     0          2m24s
+reporter-689754d5bb-76kmf   0/1     Running     0          16m
+worker-764f6b8bcf-xdjzq     1/1     Running     0          7m35s
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs gateway-6664dc87dd-47gw4 -n debug-lab --tail=20
+2026/11/06 13:01:28 readiness failed: backend not reachable: GET http://backend.default.svc:8080/healthz: Get "http://backen
+d.default.svc:8080/healthz": dial tcp: lookup backend.default.svc on 10.96.0.10:53: no such host
+2026/11/06 13:01:28 GET /healthz -> 503 (from 10.244.0.1:57740)
+2026/11/06 13:01:33 readiness failed: backend not reachable: GET http://backend.default.svc:8080/healthz: Get "http://backen
+d.default.svc:8080/healthz": dial tcp: lookup backend.default.svc on 10.96.0.10:53: no such host
+2026/11/06 13:01:33 GET /healthz -> 503 (from 10.244.0.1:57742)
+2026/11/06 13:01:33 readiness failed: backend not reachable: GET http://backend.default.svc:8080/healthz: Get "http://backen
+d.default.svc:8080/healthz": dial tcp: lookup backend.default.svc on 10.96.0.10:53: no such host
+2026/11/06 13:01:33 GET /healthz -> 503 (from 10.244.0.1:57744)
+2026/11/06 13:01:39 readiness failed: backend not reachable: GET http://backend.default.svc:8080/healthz: Get "http://backen
+d.default.svc:8080/healthz": dial tcp: lookup backend.default.svc on 10.96.0.10:53: no such host
+2026/11/06 13:01:39 GET /healthz -> 503 (from 10.244.0.1:42764)
+2026/11/06 13:01:44 readiness failed: backend not reachable: GET http://backend.default.svc:8080/healthz: Get "http://backen
+d.default.svc:8080/healthz": dial tcp: lookup backend.default.svc on 10.96.0.10:53: no such host
+2026/11/06 13:01:44 GET /healthz -> 503 (from 10.244.0.1:42770)
+2026/11/06 13:01:49 readiness failed: backend not reachable: GET http://backend.default.svc:8080/healthz: Get "http://backen
+d.default.svc:8080/healthz": dial tcp: lookup backend.default.svc on 10.96.0.10:53: no such host
+2026/11/06 13:01:49 GET /healthz -> 503 (from 10.244.0.1:33874)
+2026/11/06 13:01:53 readiness failed: backend not reachable: GET http://backend.default.svc:8080/healthz: Get "http://backen
+d.default.svc:8080/healthz": dial tcp: lookup backend.default.svc on 10.96.0.10:53: no such host
+2026/11/06 13:01:53 GET /healthz -> 503 (from 10.244.0.1:33890)
+2026/11/06 13:01:59 readiness failed: backend not reachable: GET http://backend.default.svc:8080/healthz: Get "http://backen
+d.default.svc:8080/healthz": dial tcp: lookup backend.default.svc on 10.96.0.10:53: no such host
+2026/11/06 13:01:59 GET /healthz -> 503 (from 10.244.0.1:52558)
+2026/11/06 13:02:04 readiness failed: backend not reachable: GET http://backend.default.svc:8080/healthz: Get "http://backen
+d.default.svc:8080/healthz": dial tcp: lookup backend.default.svc on 10.96.0.10:53: no such host
+2026/11/06 13:02:04 GET /healthz -> 503 (from 10.244.0.1:52560)
+2026/11/06 13:02:09 readiness failed: backend not reachable: GET http://backend.default.svc:8080/healthz: Get "http://backen
+d.default.svc:8080/healthz": dial tcp: lookup backend.default.svc on 10.96.0.10:53: no such host
+2026/11/06 13:02:09 GET /healthz -> 503 (from 10.244.0.1:54772)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs reporter-64479ff478-fsrkd -n debug-lab --tail=20
+2026/11/06 13:01:05 GET /healthz -> 503 (from 10.244.0.1:32850)
+2026/11/06 13:01:10 GET /healthz -> 503 (from 10.244.0.1:32866)
+2026/11/06 13:01:15 pod list failed: kubernetes API returned HTTP 403: {"kind":"Status","apiVersion":"v1","metadata":{},"sta
+tus":"Failure","message":"pods is forbidden: User \"system:serviceaccount:debug-lab:reporter\" cannot list resource \"pods\"
+ in API group \"\" in the namespace \"debug-lab\"","reason":"Forbidden","details":{"kind":"pods"},"code":403}
+2026/11/06 13:01:15 GET /healthz -> 503 (from 10.244.0.1:38026)
+2026/11/06 13:01:20 GET /healthz -> 503 (from 10.244.0.1:38040)
+2026/11/06 13:01:25 pod list failed: kubernetes API returned HTTP 403: {"kind":"Status","apiVersion":"v1","metadata":{},"sta
+tus":"Failure","message":"pods is forbidden: User \"system:serviceaccount:debug-lab:reporter\" cannot list resource \"pods\"
+ in API group \"\" in the namespace \"debug-lab\"","reason":"Forbidden","details":{"kind":"pods"},"code":403}
+2026/11/06 13:01:25 GET /healthz -> 503 (from 10.244.0.1:38542)
+2026/11/06 13:01:30 GET /healthz -> 503 (from 10.244.0.1:38558)
+2026/11/06 13:01:32 pod list failed: kubernetes API returned HTTP 403: {"kind":"Status","apiVersion":"v1","metadata":{},"sta
+tus":"Failure","message":"pods is forbidden: User \"system:serviceaccount:debug-lab:reporter\" cannot list resource \"pods\"
+ in API group \"\" in the namespace \"debug-lab\"","reason":"Forbidden","details":{"kind":"pods"},"code":403}
+2026/11/06 13:01:32 GET /healthz -> 503 (from 10.244.0.1:38572)
+2026/11/06 13:01:37 GET /healthz -> 503 (from 10.244.0.1:54898)
+2026/11/06 13:01:42 pod list failed: kubernetes API returned HTTP 403: {"kind":"Status","apiVersion":"v1","metadata":{},"sta
+tus":"Failure","message":"pods is forbidden: User \"system:serviceaccount:debug-lab:reporter\" cannot list resource \"pods\"
+ in API group \"\" in the namespace \"debug-lab\"","reason":"Forbidden","details":{"kind":"pods"},"code":403}
+2026/11/06 13:01:42 GET /healthz -> 503 (from 10.244.0.1:54914)
+2026/11/06 13:01:47 GET /healthz -> 503 (from 10.244.0.1:58800)
+2026/11/06 13:01:52 pod list failed: kubernetes API returned HTTP 403: {"kind":"Status","apiVersion":"v1","metadata":{},"sta
+tus":"Failure","message":"pods is forbidden: User \"system:serviceaccount:debug-lab:reporter\" cannot list resource \"pods\"
+ in API group \"\" in the namespace \"debug-lab\"","reason":"Forbidden","details":{"kind":"pods"},"code":403}
+2026/11/06 13:01:52 GET /healthz -> 503 (from 10.244.0.1:58808)
+2026/11/06 13:01:57 GET /healthz -> 503 (from 10.244.0.1:54246)
+2026/11/06 13:02:02 pod list failed: kubernetes API returned HTTP 403: {"kind":"Status","apiVersion":"v1","metadata":{},"sta
+tus":"Failure","message":"pods is forbidden: User \"system:serviceaccount:debug-lab:reporter\" cannot list resource \"pods\"
+ in API group \"\" in the namespace \"debug-lab\"","reason":"Forbidden","details":{"kind":"pods"},"code":403}
+2026/11/06 13:02:02 GET /healthz -> 503 (from 10.244.0.1:54252)
+2026/11/06 13:02:07 GET /healthz -> 503 (from 10.244.0.1:37546)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl describe pod gateway-6664dc87dd-47gw4 -n debug-lab
+Name:             gateway-6664dc87dd-47gw4
+Namespace:        debug-lab
+Priority:         0
+Service Account:  default
+Node:             demo-control-plane/172.18.0.2
+Start Time:       Fri, 06 Nov 2026 18:28:58 +0530
+Labels:           app=gateway
+                  app.kubernetes.io/managed-by=Helm
+                  app.kubernetes.io/part-of=eb-debug-lab
+                  helm.sh/chart=debug-lab-2.0.0
+                  pod-template-hash=6664dc87dd
+Annotations:      <none>
+Status:           Running
+IP:               10.244.0.24
+IPs:
+  IP:           10.244.0.24
+Controlled By:  ReplicaSet/gateway-6664dc87dd
+Containers:
+  gateway:
+    Container ID:   containerd://557fad3169d058c7f4d8357cafdff4d018bd0b1a22290629814b830f7e96209f
+    Image:          docker.io/ebinterview/eb-debug-app:1.0.1
+    Image ID:       docker.io/ebinterview/eb-debug-app@sha256:17f41698c10f5c18693339281b92d3cfef16d9fcffcad440a24e7ab19e05c4
+43
+    Port:           8080/TCP (http)
+    Host Port:      0/TCP (http)
+    State:          Running
+      Started:      Fri, 06 Nov 2026 18:29:00 +0530
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      APP_MODE:     gateway
+      APP_NAME:     gateway
+      BACKEND_URL:  http://backend.default.svc:8080
+      VERSION:      2.0.0
+      PORT:         8080
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-x55jm (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True
+  Initialized                 True
+  Ready                       False
+  ContainersReady             False
+  PodScheduled                True
+Volumes:
+  kube-api-access-x55jm:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age                  From               Message
+  ----     ------     ----                 ----               -------
+  Normal   Scheduled  3m11s                default-scheduler  Successfully assigned debug-lab/gateway-6664dc87dd-47gw4 to de
+mo-control-plane
+  Normal   Pulled     3m9s                 kubelet            spec.containers{gateway}: Container image "docker.io/ebintervi
+ew/eb-debug-app:1.0.1" already present on machine and can be accessed by the pod
+  Normal   Created    3m9s                 kubelet            spec.containers{gateway}: Container created
+  Normal   Started    3m9s                 kubelet            spec.containers{gateway}: Container started
+  Warning  Unhealthy  66s (x25 over 3m3s)  kubelet            spec.containers{gateway}: Readiness probe failed: HTTP probe f
+ailed with statuscode: 503
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl describe pod reporter-64479ff478-fsrkd -n debug-lab
+Name:             reporter-64479ff478-fsrkd
+Namespace:        debug-lab
+Priority:         0
+Service Account:  reporter
+Node:             demo-control-plane/172.18.0.2
+Start Time:       Fri, 06 Nov 2026 18:28:59 +0530
+Labels:           app=reporter
+                  app.kubernetes.io/managed-by=Helm
+                  app.kubernetes.io/part-of=eb-debug-lab
+                  helm.sh/chart=debug-lab-2.0.0
+                  pod-template-hash=64479ff478
+Annotations:      <none>
+Status:           Running
+IP:               10.244.0.25
+IPs:
+  IP:           10.244.0.25
+Controlled By:  ReplicaSet/reporter-64479ff478
+Containers:
+  reporter:
+    Container ID:   containerd://b2146566a57f0bf9e5850d996068d5171a612dbb8b15d9dcecd84fee944bbd27
+    Image:          docker.io/ebinterview/eb-debug-app:1.0.1
+    Image ID:       docker.io/ebinterview/eb-debug-app@sha256:17f41698c10f5c18693339281b92d3cfef16d9fcffcad440a24e7ab19e05c4
+43
+    Port:           8080/TCP (http)
+    Host Port:      0/TCP (http)
+    State:          Running
+      Started:      Fri, 06 Nov 2026 18:29:00 +0530
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      NAMESPACE:  debug-lab (v1:metadata.namespace)
+      APP_MODE:   reporter
+      APP_NAME:   reporter
+      VERSION:    2.0.0
+      PORT:       8080
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-mq64h (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True
+  Initialized                 True
+  Ready                       False
+  ContainersReady             False
+  PodScheduled                True
+Volumes:
+  kube-api-access-mq64h:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age                  From               Message
+  ----     ------     ----                 ----               -------
+  Normal   Scheduled  3m14s                default-scheduler  Successfully assigned debug-lab/reporter-64479ff478-fsrkd to d
+emo-control-plane
+  Normal   Pulled     3m13s                kubelet            spec.containers{reporter}: Container image "docker.io/ebinterv
+iew/eb-debug-app:1.0.1" already present on machine and can be accessed by the pod
+  Normal   Created    3m13s                kubelet            spec.containers{reporter}: Container created
+  Normal   Started    3m13s                kubelet            spec.containers{reporter}: Container started
+  Warning  Unhealthy  68s (x25 over 3m7s)  kubelet            spec.containers{reporter}: Readiness probe failed: HTTP probe
+failed with statuscode: 503
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> Get-Content .\broken-chart\templates\rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: reporter
+  labels:
+    app: reporter
+    {{- include "lab.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: reporter-read
+  labels:
+    app: reporter
+    {{- include "lab.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: reporter-read
+  labels:
+    app: reporter
+    {{- include "lab.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: reporter-read
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: {{ .Release.Namespace }}
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> Get-Content .\broken-chart\values.yaml
+# Debug lab â€” values.
+#
+# Lab rules (also in the assignment):
+#   * You may change anything in this chart â€” values or templates.
+#   * You may NOT change image.repository or image.tag.
+#   * You may NOT modify anything under ../cluster-state/.
+#   * You may NOT delete workloads to make a symptom disappear.
+
+image:
+  repository: docker.io/ebinterview/eb-debug-app
+  tag: "1.0.1"
+  pullPolicy: IfNotPresent
+
+common:
+  # Every workload serves plain HTTP on this port.
+  port: 8080
+
+backend:
+  replicas: 1
+  env:
+    APP_MODE: "api"
+    APP_NAME: "backend"
+    VERSION: "2.0.0"
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+
+gateway:
+  replicas: 1
+  env:
+    APP_MODE: "gateway"
+    APP_NAME: "gateway"
+    VERSION: "2.0.0"
+    BACKEND_URL: "http://backend.debug-lab.svc:8080"
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+
+worker:
+  replicas: 1
+  env:
+    APP_MODE: "worker"
+    APP_NAME: "worker"
+    VERSION: "2.0.0"
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+
+reporter:
+  replicas: 1
+  serviceAccountName: reporter
+  env:
+    APP_MODE: "reporter"
+    APP_NAME: "reporter"
+    VERSION: "2.0.0"
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+
+metrics:
+  replicas: 1
+  env:
+    APP_MODE: "api"
+    APP_NAME: "metrics"
+    VERSION: "2.0.0"
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "4"
+      memory: "128Mi"
+
+migrate:
+  enabled: true
+  backoffLimit: 2
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get deployment metrics -n debug-lab
+NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+metrics   0/1     0            0           29m
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl describe deployment metrics -n debug-lab
+Name:                   metrics
+Namespace:              debug-lab
+CreationTimestamp:      Fri, 06 Nov 2026 18:04:15 +0530
+Labels:                 app=metrics
+                        app.kubernetes.io/managed-by=Helm
+                        app.kubernetes.io/part-of=eb-debug-lab
+                        helm.sh/chart=debug-lab-2.0.0
+Annotations:            deployment.kubernetes.io/revision: 3
+                        meta.helm.sh/release-name: debug-lab
+                        meta.helm.sh/release-namespace: debug-lab
+Selector:               app=metrics
+Replicas:               1 desired | 0 updated | 0 total | 0 available | 2 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=metrics
+           app.kubernetes.io/managed-by=Helm
+           app.kubernetes.io/part-of=eb-debug-lab
+           helm.sh/chart=debug-lab-2.0.0
+  Containers:
+   metrics:
+    Image:      docker.io/ebinterview/eb-debug-app:1.0.1
+    Port:       8080/TCP (http)
+    Host Port:  0/TCP (http)
+    Limits:
+      cpu:     4
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      APP_MODE:    api
+      APP_NAME:    metrics
+      VERSION:     2.0.0
+    Mounts:        <none>
+  Volumes:         <none>
+  Node-Selectors:  <none>
+  Tolerations:     <none>
+Conditions:
+  Type             Status  Reason
+  ----             ------  ------
+  Available        False   MinimumReplicasUnavailable
+  ReplicaFailure   True    FailedCreate
+  Progressing      True    ReplicaSetUpdated
+OldReplicaSets:    metrics-547dccf75 (0/0 replicas created), metrics-6c57877dc7 (0/1 replicas created)
+NewReplicaSet:     metrics-7cb9589758 (0/1 replicas created)
+Events:
+  Type    Reason             Age    From                   Message
+  ----    ------             ----   ----                   -------
+  Normal  ScalingReplicaSet  29m    deployment-controller  Scaled up replica set metrics-547dccf75 from 0 to 1
+  Normal  ScalingReplicaSet  18m    deployment-controller  Scaled up replica set metrics-6c57877dc7 from 0 to 1
+  Normal  ScalingReplicaSet  2m43s  deployment-controller  Scaled down replica set metrics-547dccf75 from 1 to 0
+  Normal  ScalingReplicaSet  2m43s  deployment-controller  Scaled up replica set metrics-7cb9589758 from 0 to 1
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm lint ./broken-chart
+==> Linting ./broken-chart
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm upgrade debug-lab ./broken-chart -n debug-lab --timeout 120s
+Release "debug-lab" has been upgraded. Happy Helming!
+NAME: debug-lab
+LAST DEPLOYED: Fri Nov  6 18:38:41 2026
+NAMESPACE: debug-lab
+STATUS: deployed
+REVISION: 9
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+NOTES:
+debug-lab installed into namespace debug-lab.
+
+Goal state:
+  * migrate Job: Completed
+  * backend, gateway, worker, reporter, metrics: all pods Running and 1/1 Ready
+  * gateway /status reports {"self":"ok","backend":"ok",...}
+
+Check your progress at any time:
+  ./scenario.sh verify
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pods -n debug-lab
+NAME                        READY   STATUS              RESTARTS   AGE
+backend-749c5dff5b-xd7vp    1/1     Running             0          9m45s
+gateway-6664dc87dd-47gw4    0/1     Running             0          9m45s
+gateway-689c7755dd-tpkhb    0/1     ContainerCreating   0          1s
+gateway-69d86c676-wvngf     0/1     Terminating         0          23m
+metrics-64c965f595-ntdp6    0/1     ContainerCreating   0          1s
+migrate-m2lsq               0/1     Completed           0          21m
+reporter-64479ff478-fsrkd   0/1     Running             0          9m45s
+reporter-689754d5bb-76kmf   0/1     Running             0          23m
+worker-764f6b8bcf-xdjzq     1/1     Running             0          14m
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl auth can-i list pods --as=system:serviceaccount:debug-lab:reporter -n debug-lab
+yes
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> & "C:\Program Files\Git\bin\bash.exe" ./scenario.sh verify
+==> verifying goal state in namespace debug-lab
+  PASS  migrate Job completed
+  PASS  deployment backend: 1/1 ready
+  FAIL  deployment gateway: 0/1 ready
+  PASS  deployment worker: 1/1 ready
+  FAIL  deployment reporter: 0/1 ready
+  FAIL  deployment metrics: 0/1 ready
+  PASS  no pods in CrashLoopBackOff
+  PASS  ServiceAccount debug-lab/reporter can list pods
+  PASS  backend answers on http://backend:8080/healthz
+  FAIL  gateway /status does not report backend=ok
+  FAIL  reporter /report does not return a pod count
+
+5 check(s) failing, 6 passing. Keep digging — every failure is a symptom.
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl rollout status deployment/gateway -n debug-lab --timeout=90s
+deployment "gateway" successfully rolled out
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl rollout status deployment/reporter -n debug-lab --timeout=90s
+error: deployment "reporter" exceeded its progress deadline
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl rollout status deployment/metrics -n debug-lab --timeout=90s
+deployment "metrics" successfully rolled out
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pods -n debug-lab
+NAME                        READY   STATUS      RESTARTS   AGE
+backend-749c5dff5b-xd7vp    1/1     Running     0          10m
+gateway-689c7755dd-tpkhb    1/1     Running     0          68s
+metrics-64c965f595-ntdp6    1/1     Running     0          68s
+migrate-m2lsq               0/1     Completed   0          22m
+reporter-64479ff478-fsrkd   0/1     Running     0          10m
+reporter-689754d5bb-76kmf   0/1     Running     0          24m
+worker-764f6b8bcf-xdjzq     1/1     Running     0          16m
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs reporter-64479ff478-fsrkd -n debug-lab --tail=30
+2026/11/06 13:08:52 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:08:52 GET /healthz -> 503 (from 10.244.0.1:46098)
+2026/11/06 13:08:57 GET /healthz -> 503 (from 10.244.0.1:54698)
+2026/11/06 13:09:02 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:09:02 GET /healthz -> 503 (from 10.244.0.1:54708)
+2026/11/06 13:09:07 GET /healthz -> 503 (from 10.244.0.1:38432)
+2026/11/06 13:09:12 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:09:12 GET /healthz -> 503 (from 10.244.0.1:38436)
+2026/11/06 13:09:12 GET /healthz -> 503 (from 10.244.0.1:38448)
+2026/11/06 13:09:17 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:09:17 GET /healthz -> 503 (from 10.244.0.1:48098)
+2026/11/06 13:09:22 GET /healthz -> 503 (from 10.244.0.1:48108)
+2026/11/06 13:09:27 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:09:27 GET /healthz -> 503 (from 10.244.0.1:45960)
+2026/11/06 13:09:32 GET /healthz -> 503 (from 10.244.0.1:45964)
+2026/11/06 13:09:37 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:09:37 GET /healthz -> 503 (from 10.244.0.1:47888)
+2026/11/06 13:09:42 GET /healthz -> 503 (from 10.244.0.1:47896)
+2026/11/06 13:09:47 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:09:47 GET /healthz -> 503 (from 10.244.0.1:54318)
+2026/11/06 13:09:52 GET /healthz -> 503 (from 10.244.0.1:54322)
+2026/11/06 13:09:57 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:09:57 GET /healthz -> 503 (from 10.244.0.1:39354)
+2026/11/06 13:10:02 GET /healthz -> 503 (from 10.244.0.1:39360)
+2026/11/06 13:10:07 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:10:07 GET /healthz -> 503 (from 10.244.0.1:34674)
+2026/11/06 13:10:12 GET /healthz -> 503 (from 10.244.0.1:34682)
+2026/11/06 13:10:17 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:10:17 GET /healthz -> 503 (from 10.244.0.1:55104)
+2026/11/06 13:10:22 GET /healthz -> 503 (from 10.244.0.1:55108)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl describe deployment reporter -n debug-lab
+Name:                   reporter
+Namespace:              debug-lab
+CreationTimestamp:      Fri, 06 Nov 2026 18:04:15 +0530
+Labels:                 app=reporter
+                        app.kubernetes.io/managed-by=Helm
+                        app.kubernetes.io/part-of=eb-debug-lab
+                        helm.sh/chart=debug-lab-2.0.0
+Annotations:            deployment.kubernetes.io/revision: 3
+                        meta.helm.sh/release-name: debug-lab
+                        meta.helm.sh/release-namespace: debug-lab
+Selector:               app=reporter
+Replicas:               1 desired | 1 updated | 2 total | 0 available | 2 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:           app=reporter
+                    app.kubernetes.io/managed-by=Helm
+                    app.kubernetes.io/part-of=eb-debug-lab
+                    helm.sh/chart=debug-lab-2.0.0
+  Service Account:  reporter
+  Containers:
+   reporter:
+    Image:      docker.io/ebinterview/eb-debug-app:1.0.1
+    Port:       8080/TCP (http)
+    Host Port:  0/TCP (http)
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      NAMESPACE:    (v1:metadata.namespace)
+      APP_MODE:    reporter
+      APP_NAME:    reporter
+      VERSION:     2.0.0
+      PORT:        8080
+    Mounts:        <none>
+  Volumes:         <none>
+  Node-Selectors:  <none>
+  Tolerations:     <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      False   MinimumReplicasUnavailable
+  Progressing    False   ProgressDeadlineExceeded
+OldReplicaSets:  reporter-6f8bff6b8d (0/0 replicas created), reporter-689754d5bb (1/1 replicas created)
+NewReplicaSet:   reporter-64479ff478 (1/1 replicas created)
+Events:
+  Type    Reason             Age   From                   Message
+  ----    ------             ----  ----                   -------
+  Normal  ScalingReplicaSet  36m   deployment-controller  Scaled up replica set reporter-6f8bff6b8d from 0 to 1
+  Normal  ScalingReplicaSet  25m   deployment-controller  Scaled up replica set reporter-689754d5bb from 0 to 1
+  Normal  ScalingReplicaSet  11m   deployment-controller  Scaled down replica set reporter-6f8bff6b8d from 1 to 0
+  Normal  ScalingReplicaSet  11m   deployment-controller  Scaled up replica set reporter-64479ff478 from 0 to 1
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get endpoints reporter -n debug-lab
+Warning: v1 Endpoints is deprecated in v1.33+; use discovery.k8s.io/v1 EndpointSlice
+NAME       ENDPOINTS   AGE
+reporter               36m
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> Get-Content .\broken-chart\templates\reporter.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporter
+  labels:
+    app: reporter
+    {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.reporter.replicas }}
+  selector:
+    matchLabels:
+      app: reporter
+  template:
+    metadata:
+      labels:
+        app: reporter
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ .Values.reporter.serviceAccountName }}
+      containers:
+        - name: reporter
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.common.port }}
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- range $name, $value := .Values.reporter.env }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+            - name: PORT
+              value: "8080"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.common.port }}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.reporter.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reporter
+  labels:
+    app: reporter
+    {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: reporter
+  ports:
+    - name: http
+      port: 8080
+      targetPort: {{ .Values.common.port }}
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get role reporter-read -n debug-lab -o yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  annotations:
+    meta.helm.sh/release-name: debug-lab
+    meta.helm.sh/release-namespace: debug-lab
+  creationTimestamp: "2026-11-06T12:34:15Z"
+  labels:
+    app: reporter
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: eb-debug-lab
+    helm.sh/chart: debug-lab-2.0.0
+  name: reporter-read
+  namespace: debug-lab
+  resourceVersion: "2307"
+  uid: fd948ba7-90d4-4183-90e9-ea6c5d6e19a2
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get rolebinding reporter-read -n debug-lab -o yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations:
+    meta.helm.sh/release-name: debug-lab
+    meta.helm.sh/release-namespace: debug-lab
+  creationTimestamp: "2026-11-06T12:34:15Z"
+  labels:
+    app: reporter
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: eb-debug-lab
+    helm.sh/chart: debug-lab-2.0.0
+  name: reporter-read
+  namespace: debug-lab
+  resourceVersion: "6296"
+  uid: c8b17f4d-8339-446e-bd66-297b70ed1551
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: reporter-read
+subjects:
+- kind: ServiceAccount
+  name: reporter
+  namespace: debug-lab
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pod reporter-64479ff478-fsrkd -n debug-lab -o jsonpath="{.spec.containers[0].env}"
+[{"name":"NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}},{"name":"APP_MODE","valu
+e":"reporter"},{"name":"APP_NAME","value":"reporter"},{"name":"VERSION","value":"2.0.0"},{"name":"PORT","value":"8080"}]
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl exec -n debug-lab reporter-64479ff478-fsrkd -- sh -c 'echo "KUBERNETES_SERVICE_HOST=$KUBERNETES_SERVICE_HOST"; echo "KUBERNETES_SERVICE_PORT=$KUBERNETES_SERVICE_PORT"; ls /var/run/secrets/kubernetes.io/serviceaccount/'
+error: Internal error occurred: Internal error occurred: error executing command in container: failed to exec in container: fa
+iled to start exec "812cdff969f18ffc93b0900fa115944a1d44335b74dc9bac7fe0446c5a4b3d19": OCI runtime exec failed: exec failed: u
+nable to start container process: exec: "sh": executable file not found in $PATH
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pod reporter-64479ff478-fsrkd -n debug-lab -o jsonpath="{.spec.containers[0].volumeMounts}"
+[{"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount","name":"kube-api-access-mq64h","readOnly":true}]
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pod reporter-64479ff478-fsrkd -n debug-lab -o jsonpath="{.spec.automountServiceAccountToken}"
+
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get networkpolicy -n debug-lab
+No resources found in debug-lab namespace.
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs deployment/reporter -n debug-lab --tail=15
+Found 2 pods, using pod/reporter-689754d5bb-76kmf
+2026/11/06 12:45:21 eb-debug-app 2.0.0 starting: mode=reporter pod=reporter-689754d5bb-76kmf listening on :8081 (image default
+ is 8081; set PORT to override)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> $response = kubectl get --raw "/api/v1/namespaces/debug-lab/pods" | ConvertFrom-Json
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> $response.kind
+PodList
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> $response.items.Count
+7
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs reporter-64479ff478-fsrkd -n debug-lab --tail=20
+2026/11/06 13:12:22 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:12:22 GET /healthz -> 503 (from 10.244.0.1:45564)
+2026/11/06 13:12:27 GET /healthz -> 503 (from 10.244.0.1:59306)
+2026/11/06 13:12:32 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:12:32 GET /healthz -> 503 (from 10.244.0.1:59316)
+2026/11/06 13:12:37 GET /healthz -> 503 (from 10.244.0.1:35726)
+2026/11/06 13:12:42 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:12:42 GET /healthz -> 503 (from 10.244.0.1:35734)
+2026/11/06 13:12:47 GET /healthz -> 503 (from 10.244.0.1:41544)
+2026/11/06 13:12:52 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:12:52 GET /healthz -> 503 (from 10.244.0.1:41556)
+2026/11/06 13:12:57 GET /healthz -> 503 (from 10.244.0.1:38456)
+2026/11/06 13:12:59 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:12:59 GET /healthz -> 503 (from 10.244.0.1:38464)
+2026/11/06 13:13:04 GET /healthz -> 503 (from 10.244.0.1:38466)
+2026/11/06 13:13:09 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:13:09 GET /healthz -> 503 (from 10.244.0.1:47820)
+2026/11/06 13:13:14 GET /healthz -> 503 (from 10.244.0.1:47822)
+2026/11/06 13:13:19 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/06 13:13:19 GET /healthz -> 503 (from 10.244.0.1:48884)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pods -n debug-lab
+NAME                        READY   STATUS      RESTARTS   AGE
+backend-749c5dff5b-xd7vp    1/1     Running     0          14m
+gateway-689c7755dd-tpkhb    1/1     Running     0          4m42s
+metrics-64c965f595-ntdp6    1/1     Running     0          4m42s
+migrate-m2lsq               0/1     Completed   0          26m
+reporter-64479ff478-fsrkd   0/1     Running     0          14m
+reporter-689754d5bb-76kmf   0/1     Running     0          28m
+worker-764f6b8bcf-xdjzq     1/1     Running     0          19m
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm lint ./broken-chart
+==> Linting ./broken-chart
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> helm upgrade debug-lab ./broken-chart -n debug-lab --timeout 120s
+Release "debug-lab" has been upgraded. Happy Helming!
+NAME: debug-lab
+LAST DEPLOYED: Fri Nov  6 18:45:10 2026
+NAMESPACE: debug-lab
+STATUS: deployed
+REVISION: 10
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+NOTES:
+debug-lab installed into namespace debug-lab.
+
+Goal state:
+  * migrate Job: Completed
+  * backend, gateway, worker, reporter, metrics: all pods Running and 1/1 Ready
+  * gateway /status reports {"self":"ok","backend":"ok",...}
+
+Check your progress at any time:
+  ./scenario.sh verify
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl rollout status deployment/reporter -n debug-lab --timeout=90s
+Waiting for deployment "reporter" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "reporter" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "reporter" rollout to finish: 1 old replicas are pending termination...
+error: timed out waiting for the condition
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get pods -n debug-lab
+NAME                        READY   STATUS      RESTARTS   AGE
+backend-749c5dff5b-xd7vp    1/1     Running     0          17m
+gateway-689c7755dd-tpkhb    1/1     Running     0          8m
+metrics-64c965f595-ntdp6    1/1     Running     0          8m
+migrate-m2lsq               0/1     Completed   0          29m
+reporter-64479ff478-fsrkd   0/1     Running     0          17m
+reporter-8b6c5f9b-h7jlk     0/1     Running     0          91s
+worker-764f6b8bcf-xdjzq     1/1     Running     0          22m
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs -n debug-lab -l app=reporter --prefix --tail=10
+[pod/reporter-64479ff478-fsrkd/reporter] 2026/11/06 13:16:14 GET /healthz -> 503 (from 10.244.0.1:36400)
+[pod/reporter-64479ff478-fsrkd/reporter] 2026/11/06 13:16:19 GET /healthz -> 503 (from 10.244.0.1:46572)
+[pod/reporter-64479ff478-fsrkd/reporter] 2026/11/06 13:16:24 pod list failed: parse pod list: unexpected end of JSON input
+[pod/reporter-64479ff478-fsrkd/reporter] 2026/11/06 13:16:24 GET /healthz -> 503 (from 10.244.0.1:46576)
+[pod/reporter-64479ff478-fsrkd/reporter] 2026/11/06 13:16:29 GET /healthz -> 503 (from 10.244.0.1:44996)
+[pod/reporter-64479ff478-fsrkd/reporter] 2026/11/06 13:16:31 pod list failed: parse pod list: unexpected end of JSON input
+[pod/reporter-64479ff478-fsrkd/reporter] 2026/11/06 13:16:31 GET /healthz -> 503 (from 10.244.0.1:45002)
+[pod/reporter-64479ff478-fsrkd/reporter] 2026/11/06 13:16:36 GET /healthz -> 503 (from 10.244.0.1:53758)
+[pod/reporter-64479ff478-fsrkd/reporter] 2026/11/06 13:16:41 pod list failed: parse pod list: unexpected end of JSON input
+[pod/reporter-64479ff478-fsrkd/reporter] 2026/11/06 13:16:41 GET /healthz -> 503 (from 10.244.0.1:53760)
+[pod/reporter-8b6c5f9b-h7jlk/reporter] 2026/11/06 13:16:13 GET /healthz -> 503 (from 10.244.0.1:60792)
+[pod/reporter-8b6c5f9b-h7jlk/reporter] 2026/11/06 13:16:14 pod list failed: parse pod list: unexpected end of JSON input
+[pod/reporter-8b6c5f9b-h7jlk/reporter] 2026/11/06 13:16:14 GET /healthz -> 503 (from 10.244.0.1:60808)
+[pod/reporter-8b6c5f9b-h7jlk/reporter] 2026/11/06 13:16:19 GET /healthz -> 503 (from 10.244.0.1:44580)
+[pod/reporter-8b6c5f9b-h7jlk/reporter] 2026/11/06 13:16:24 pod list failed: parse pod list: unexpected end of JSON input
+[pod/reporter-8b6c5f9b-h7jlk/reporter] 2026/11/06 13:16:24 GET /healthz -> 503 (from 10.244.0.1:44586)
+[pod/reporter-8b6c5f9b-h7jlk/reporter] 2026/11/06 13:16:29 GET /healthz -> 503 (from 10.244.0.1:52952)
+[pod/reporter-8b6c5f9b-h7jlk/reporter] 2026/11/06 13:16:34 pod list failed: parse pod list: unexpected end of JSON input
+[pod/reporter-8b6c5f9b-h7jlk/reporter] 2026/11/06 13:16:34 GET /healthz -> 503 (from 10.244.0.1:52954)
+[pod/reporter-8b6c5f9b-h7jlk/reporter] 2026/11/06 13:16:39 GET /healthz -> 503 (from 10.244.0.1:49076)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> & "C:\Program Files\Git\bin\bash.exe" ./scenario.sh verify
+==> verifying goal state in namespace debug-lab
+  PASS  migrate Job completed
+  PASS  deployment backend: 1/1 ready
+  PASS  deployment gateway: 1/1 ready
+  PASS  deployment worker: 1/1 ready
+  FAIL  deployment reporter: 0/1 ready
+  PASS  deployment metrics: 1/1 ready
+  PASS  no pods in CrashLoopBackOff
+  PASS  ServiceAccount debug-lab/reporter can list pods
+  PASS  backend answers on http://backend:8080/healthz
+  FAIL  gateway /status does not report backend=ok
+  FAIL  reporter /report does not return a pod count
+
+3 check(s) failing, 8 passing. Keep digging — every failure is a symptom.
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl logs gateway-689c7755dd-tpkhb -n debug-lab --tail=25
+2026/11/06 13:16:24 GET /healthz -> 200 (from 10.244.0.1:54140)
+2026/11/06 13:16:29 GET /healthz -> 200 (from 10.244.0.1:47916)
+2026/11/06 13:16:34 GET /healthz -> 200 (from 10.244.0.1:47930)
+2026/11/06 13:16:39 GET /healthz -> 200 (from 10.244.0.1:43768)
+2026/11/06 13:16:44 GET /healthz -> 200 (from 10.244.0.1:43774)
+2026/11/06 13:16:49 GET /healthz -> 200 (from 10.244.0.1:53200)
+2026/11/06 13:16:54 GET /healthz -> 200 (from 10.244.0.1:53206)
+2026/11/06 13:16:56 GET /status -> 200 (from 10.244.0.30:43892)
+2026/11/06 13:16:59 GET /healthz -> 200 (from 10.244.0.1:54190)
+2026/11/06 13:17:04 GET /healthz -> 200 (from 10.244.0.1:54200)
+2026/11/06 13:17:09 GET /healthz -> 200 (from 10.244.0.1:38046)
+2026/11/06 13:17:14 GET /healthz -> 200 (from 10.244.0.1:38054)
+2026/11/06 13:17:19 GET /healthz -> 200 (from 10.244.0.1:57716)
+2026/11/06 13:17:24 GET /healthz -> 200 (from 10.244.0.1:57718)
+2026/11/06 13:17:29 GET /healthz -> 200 (from 10.244.0.1:48222)
+2026/11/06 13:17:34 GET /healthz -> 200 (from 10.244.0.1:48238)
+2026/11/06 13:17:39 GET /healthz -> 200 (from 10.244.0.1:37358)
+2026/11/06 13:17:44 GET /healthz -> 200 (from 10.244.0.1:37370)
+2026/11/06 13:17:49 GET /healthz -> 200 (from 10.244.0.1:41570)
+2026/11/06 13:17:54 GET /healthz -> 200 (from 10.244.0.1:41574)
+2026/11/06 13:17:59 GET /healthz -> 200 (from 10.244.0.1:43696)
+2026/11/06 13:18:04 GET /healthz -> 200 (from 10.244.0.1:43702)
+2026/11/06 13:18:09 GET /healthz -> 200 (from 10.244.0.1:59252)
+2026/11/06 13:18:14 GET /healthz -> 200 (from 10.244.0.1:59260)
+2026/11/06 13:18:19 GET /healthz -> 200 (from 10.244.0.1:33368)
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get deployment gateway -n debug-lab -o jsonpath="{.spec.template.spec.containers[0].env}"
+[{"name":"APP_MODE","value":"gateway"},{"name":"APP_NAME","value":"gateway"},{"name":"BACKEND_URL","value":"http://backend.deb
+ug-lab.svc:8080"},{"name":"VERSION","value":"2.0.0"},{"name":"PORT","value":"8080"}]
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> Get-Content .\scenario.sh | Select-String -Pattern "gateway /status|backend=ok|status" -Context 4,8
+
+  incluster_probe() {
+    kubectl -n "$NS" run eb-verify-probe --rm -i --restart=Never \
+      --image=busybox:1.36 --quiet --pod-running-timeout=90s --command -- sh -c '
+        wget -q -O- -T 4 http://backend:8080/healthz >/dev/null 2>&1 \
+>         && echo PROBE_BACKEND=ok || echo PROBE_BACKEND=fail
+>       GW=$(wget -q -O- -T 6 http://gateway.debug-lab.svc/status 2>/dev/null)
+        echo "PROBE_GATEWAY_BODY=$GW"
+        RP=$(wget -q -O- -T 6 http://reporter:8080/report 2>/dev/null)
+        echo "PROBE_REPORTER_BODY=$RP"
+        nslookup backend >/dev/null 2>&1 \
+          && echo PROBE_DNS=ok || echo PROBE_DNS=fail
+      ' 2>/dev/null
+  }
+
+  verify() {
+    echo "==> verifying goal state in namespace $NS"
+
+    # 1. migration Job ran to completion
+>   if [ "$(kubectl -n "$NS" get job migrate -o jsonpath='{.status.succeeded}' 2>/dev/null)" = "1" ]; then
+      ok "migrate Job completed"
+    else
+      bad "migrate Job has not completed (does it exist? did the chart even install cleanly?)"
+    fi
+
+    # 2. every Deployment fully Ready
+    for d in backend gateway worker reporter metrics; do
+      want=$(kubectl -n "$NS" get deploy "$d" -o jsonpath='{.spec.replicas}' 2>/dev/null)
+>     have=$(kubectl -n "$NS" get deploy "$d" -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
+      if [ -n "$want" ] && [ "${have:-0}" = "$want" ]; then
+        ok "deployment $d: $have/$want ready"
+      else
+        bad "deployment $d: ${have:-0}/${want:-?} ready"
+      fi
+    done
+
+    # 3. nothing is crash-looping
+    loops=$(kubectl -n "$NS" get pods \
+>     -o jsonpath='{range .items[*]}{.metadata.name} {.status.containerStatuses[0].state.waiting.reason}{"\n"}{end}'
+2>/dev/null \
+      | grep -c CrashLoopBackOff)
+    if [ "${loops:-0}" -eq 0 ]; then
+      ok "no pods in CrashLoopBackOff"
+    else
+      bad "$loops pod(s) in CrashLoopBackOff"
+    fi
+
+    # 4. the reporter ServiceAccount really may list pods
+    fi
+
+    # 5. in-cluster behaviour: backend serves, gateway aggregates, reporter reports
+    probe=$(incluster_probe)
+>   case "$probe" in *PROBE_BACKEND=ok*) ok "backend answers on http://backend:8080/healthz";;
+                     *) bad "backend does not answer on http://backend:8080/healthz";; esac
+>   case "$probe" in *'"backend":"ok"'*) ok "gateway /status reports backend=ok";;
+>                    *) bad "gateway /status does not report backend=ok";; esac
+    if printf '%s' "$probe" | grep -q 'PROBE_REPORTER_BODY=.*"pods":[1-9]'; then
+      ok "reporter /report sees pods in the namespace"
+    else
+      bad "reporter /report does not return a pod count"
+    fi
+
+    echo ""
+    if [ "$FAIL" -eq 0 ]; then
+
+
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl -n debug-lab port-forward svc/gateway 18080:8080
+error: Service gateway does not have a service port 8080
+PS C:\Users\dell\Downloads\eb-devops-takehome-v2\lab> kubectl get svc gateway -n debug-lab -o yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    meta.helm.sh/release-name: debug-lab
+    meta.helm.sh/release-namespace: debug-lab
+  creationTimestamp: "2026-11-06T12:34:15Z"
+  labels:
+    app: gateway
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: eb-debug-lab
+    helm.sh/chart: debug-lab-2.0.0
+  name: gateway
+  namespace: debug-lab
+  resourceVersion: "2310"
+  uid: 1fe34b1b-2186-4fbc-bf40-dff4781ca80d
+spec:
+  clusterIP: 10.96.238.66
+  clusterIPs:
+  - 10.96.238.66
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: gateway
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

@@ -35,7 +35,7 @@ gateway:
     APP_MODE: "gateway"
     APP_NAME: "gateway"
     VERSION: "2.0.0"
-    BACKEND_URL: "http://backend.default.svc:8080"
+    BACKEND_URL: "http://backend.debug-lab.svc:8080"
   resources:
     requests:
       cpu: "50m"
@@ -73,6 +73,7 @@ reporter:
       cpu: "200m"
       memory: "128Mi"
 
+
 metrics:
   replicas: 1
   env:
@@ -81,11 +82,12 @@ metrics:
     VERSION: "2.0.0"
   resources:
     requests:
-      cpu: "2"
+      cpu: "50m"
       memory: "64Mi"
     limits:
-      cpu: "4"
+      cpu: "200m"
       memory: "128Mi"
+
 
 migrate:
   enabled: true

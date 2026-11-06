@@ -1,3 +1,4 @@
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,6 +29,8 @@ spec:
             - name: {{ $name }}
               value: {{ $value | quote }}
             {{- end }}
+            - name: PORT
+              value: "8080"
           readinessProbe:
             httpGet:
               path: /healthz
@@ -37,9 +40,16 @@ spec:
             timeoutSeconds: 3
           securityContext:
             runAsNonRoot: true
+            runAsUser: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
+          volumeMounts:
+            - name: worker-cache
+              mountPath: /var/cache/app
           resources:
             {{- toYaml .Values.worker.resources | nindent 12 }}
+      volumes:
+        - name: worker-cache
+          emptyDir: {}
